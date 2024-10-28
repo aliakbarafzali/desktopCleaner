@@ -1,8 +1,28 @@
 import os
 import shutil
+from pathlib import Path
+import platform
+import ctypes
 
 # Récupération du chemin du bureau pour l'utilisateur sous Windows
-desktop_path = r"C:\Users\aafzali\OneDrive - EVERIAL\Bureau"
+def locate_desktop():
+    if platform.system() == "Windows":
+        buf = ctypes.create_unicode_buffer(1024)
+        ctypes.windll.shell32.SHGetFolderPathW(None, 0x0000, None, 0, buf)
+        desktop_path = Path(buf.value)
+    else:
+        desktop_path = Path.home() / "Desktop"
+        if not desktop_path.exists() and (Path.home() / ".config" / "user-dirs.dirs").exists():
+            with open(Path.home() / ".config" / "user-dirs.dirs") as f:
+                for line in f:
+                    if "XDG_DESKTOP_DIR" in line:
+                        desktop_path = Path(line.split("=")[1].strip().replace("$HOME", str(Path.home())).strip('"'))
+                        break
+
+    if desktop_path.exists():
+        return desktop_path
+    else:
+        raise FileNotFoundError("Desktop folder not found.")
 
 
 
@@ -107,7 +127,7 @@ def cleanAll():
     print("End of complete cleaning")
 
 
-
+desktop_path = locate_desktop()
 while True:
     display_menu()
     user_choice = input("Enter the number of your choice: ")
